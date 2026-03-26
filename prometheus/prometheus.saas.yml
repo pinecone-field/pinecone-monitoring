@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 30s
+  scrape_timeout: 15s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: pinecone-serverless-metrics
+    http_sd_configs:
+      - url: https://api.pinecone.io/prometheus/projects/${PINECONE_PROJECT_ID}/metrics/discovery
+        refresh_interval: 1m
+        authorization:
+          type: Bearer
+          credentials: "${PINECONE_API_KEY}"
+    authorization:
+      type: Bearer
+      credentials: "${PINECONE_API_KEY}"

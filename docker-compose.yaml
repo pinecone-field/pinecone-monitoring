@@ -1,0 +1,46 @@
+services:
+  init:
+    image: alpine:latest
+    volumes:
+      - ./prometheus/prometheus.saas.yml:/template/prometheus.yml:ro
+      - prometheus-config:/output
+    environment:
+      PINECONE_API_KEY: ${PINECONE_API_KEY}
+      PINECONE_PROJECT_ID: ${PINECONE_PROJECT_ID}
+    command: ["sh", "-c", "apk add --no-cache gettext > /dev/null 2>&1 && envsubst < /template/prometheus.yml > /output/prometheus.yml"]
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - prometheus-config:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-lifecycle
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: pinecone
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus-config:
+  prometheus-data:
+  grafana-data:
