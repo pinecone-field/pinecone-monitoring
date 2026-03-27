@@ -1,24 +1,31 @@
 # Pinecone Monitoring
 
-Prometheus + Grafana monitoring for [Pinecone](https://www.pinecone.io) vector databases. Works with **SaaS (Serverless)**, **BYOC Public**, and **BYOC Private** deployments.
+Prometheus + Grafana monitoring for [Pinecone](https://www.pinecone.io) vector databases.
 
-## What You Get
+## Deployment Modes
 
-- **Pinecone Index Metrics** dashboard — record counts, storage, operation rates (query, upsert, fetch, update, delete), latency, read/write units. Works with all deployment types.
-- **Kubernetes Cluster** dashboard (BYOC only) — node CPU/memory/disk, pod resources, PVC capacity.
+Choose the mode that matches your setup:
 
-### Dashboard Screenshots
+| Mode | What it monitors | How it runs | When to use |
+|---|---|---|---|
+| **[SaaS Only](#mode-1--saas-only)** | Serverless index metrics | Docker Compose on your laptop | You only have SaaS/Serverless indexes |
+| **[BYOC Only](#mode-2--byoc-only)** | BYOC index metrics + Kubernetes cluster | Script into your BYOC K8s cluster | You only have BYOC indexes |
+| **[BYOC + SaaS](#mode-3--byoc--saas)** | Everything — SaaS indexes, BYOC indexes, and Kubernetes cluster | Script into your BYOC K8s cluster | You have both SaaS and BYOC indexes |
 
-![Index stats 1](%20screenshots/i-1.png)
-![Index stats 2](%20screenshots/i-2.png)
-![k8s stats 1](%20screenshots/k8-1.png)
-![k8s stats 2](%20screenshots/k8-2.png)
-![k8s stats 3](%20screenshots/k8-3.png)
-![k8s stats 4](%20screenshots/k8-4.png)
+### What each mode gives you
 
-## Quick Start — SaaS / Serverless
+| Metrics | SaaS Only | BYOC Only | BYOC + SaaS |
+|---|:---:|:---:|:---:|
+| SaaS/Serverless index metrics | Yes | — | Yes |
+| BYOC index metrics | — | Yes | Yes |
+| BYOC pod CPU/memory | — | Yes | Yes |
+| Kubernetes cluster health | — | Yes | Yes |
 
-Monitor your Pinecone indexes with a single command using Docker Compose. No Kubernetes required.
+---
+
+## Mode 1 — SaaS Only
+
+Monitor your Pinecone Serverless indexes with Docker Compose. Runs on your **local machine** — no Kubernetes, bastion host, or VPC access required.
 
 ### Prerequisites
 
@@ -31,7 +38,7 @@ Monitor your Pinecone indexes with a single command using Docker Compose. No Kub
 cp .env.example .env
 ```
 
-Edit `.env` with your values:
+Edit `.env`:
 
 ```
 PINECONE_API_KEY=pcsk_...
@@ -51,9 +58,9 @@ docker compose up -d
 Go to [http://localhost:3000](http://localhost:3000) and log in:
 
 - **Username:** `admin`
-- **Password:** `pinecone`
+- **Password:** `pinecone-monitoring`
 
-The **Pinecone Index Metrics** dashboard is pre-loaded and will start populating as soon as your indexes receive traffic.
+The **Pinecone SaaS Index Metrics** dashboard is pre-loaded and will start populating as soon as your indexes receive traffic.
 
 ### Stop
 
@@ -62,9 +69,11 @@ docker compose down        # keep data
 docker compose down -v     # remove data volumes too
 ```
 
-## Quick Start — BYOC
+---
 
-Deploy monitoring into your existing BYOC Kubernetes cluster. The script merges additional scrape jobs into the BYOC-managed Prometheus and deploys Grafana with pre-configured dashboards.
+## Mode 2 — BYOC Only
+
+Deploy monitoring into your existing BYOC Kubernetes cluster. Monitors BYOC index metrics and Kubernetes infrastructure. The script merges scrape jobs into the BYOC-managed Prometheus and deploys Grafana with pre-configured dashboards.
 
 ### Prerequisites
 
@@ -132,18 +141,44 @@ Then open [http://localhost:3000](http://localhost:3000) and log in with:
 - **Username:** `admin`
 - **Password:** `pinecone-monitoring` (change in `grafana/grafana-values.yaml`)
 
+---
+
+## Mode 3 — BYOC + SaaS
+
+Monitor **everything** from a single Grafana instance inside your BYOC cluster — SaaS/Serverless indexes, BYOC indexes, and Kubernetes infrastructure.
+
+This works because the BYOC Prometheus scrapes the Pinecone Metrics API, which discovers **all** indexes in the project (both `serverless` and `byoc`). You get separate dashboards for each type, plus Kubernetes cluster metrics, all in one place.
+
+### Setup
+
+The setup is **identical to [Mode 2 (BYOC Only)](#mode-2--byoc-only)** — no extra steps are needed. The deploy script automatically configures Prometheus to discover and scrape both SaaS and BYOC index metrics. All three dashboards are pre-loaded in Grafana:
+
+- **Pinecone SaaS Index Metrics** — your Serverless indexes
+- **Pinecone BYOC Index Metrics** — your BYOC indexes + pod resources
+- **Kubernetes Cluster** — node/pod/resource health
+
 ## Dashboards
 
-### Pinecone Index Metrics
+### Pinecone SaaS Index Metrics
 
-Works with **all deployment types** (SaaS, BYOC Public, BYOC Private).
+Filtered to `capacity_mode="serverless"` indexes.
 
 | Section | Panels |
 |---|---|
 | Index Overview | Total records, records per index, storage size per index |
-| Operation Rates | Query, upsert, fetch, update, and delete rates per index; read/write units per second |
+| Operation Rates | Query, upsert, fetch, update, and delete rates; read/write units per second |
 | Latency | Average query, upsert, and fetch latency per index |
-| BYOC Infrastructure | Active index pods, CPU/memory usage per pod (collapsed by default, BYOC only) |
+
+### Pinecone BYOC Index Metrics
+
+Filtered to `capacity_mode="byoc"` indexes. Includes pod-level infrastructure metrics.
+
+| Section | Panels |
+|---|---|
+| Index Overview | Total records, records per index, storage size per index |
+| BYOC Pod Resources | Active index pods, total CPU/memory, per-pod CPU and memory timeseries |
+| Operation Rates | Query, upsert, fetch, update, and delete rates; read/write units per second |
+| Latency | Average query, upsert, and fetch latency per index |
 
 ### Kubernetes Cluster (BYOC only)
 
@@ -246,7 +281,8 @@ pinecone-monitoring/
 │   │   └── dashboards/
 │   │       └── default.yaml
 │   └── dashboards/
-│       ├── pinecone-index-metrics.json  # Index metrics (all modes)
+│       ├── pinecone-saas-metrics.json   # SaaS index metrics (serverless)
+│       ├── pinecone-byoc-metrics.json   # BYOC index metrics (byoc + pods)
 │       └── kubernetes-cluster.json      # K8s cluster (BYOC only)
 ├── prometheus/
 │   ├── prometheus.saas.yml              # SaaS: standalone Prometheus config

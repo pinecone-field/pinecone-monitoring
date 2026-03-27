@@ -92,7 +92,7 @@
     credentials_file: /etc/pinecone/api-key
   relabel_configs:
   - source_labels: [__address__]
-    regex: metrics\.(.+)
+    regex: metrics\.(YOUR_BYOC_DOMAIN\.pinecone\.io.*)
     target_label: __address__
     replacement: YOUR_METRICS_HOST_PREFIX$1
 

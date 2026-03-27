@@ -1,0 +1,215 @@
+{
+  "uid": "pinecone-saas-metrics",
+  "title": "Pinecone SaaS Index Metrics",
+  "description": "Pinecone Serverless index metrics: records, storage, operation rates, latency, and resource consumption.",
+  "tags": ["pinecone", "saas", "serverless"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "editable": true,
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "index_name",
+        "label": "Index",
+        "type": "query",
+        "query": "label_values(pinecone_db_record_total{capacity_mode=\"serverless\"}, index_name)",
+        "datasource": "Prometheus",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "multi": true,
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Index Overview",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "type": "stat",
+      "title": "Total Records",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 1 },
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] },
+          "color": { "mode": "thresholds" }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none", "textMode": "auto", "colorMode": "value" },
+      "targets": [
+        { "datasource": "Prometheus", "expr": "sum(pinecone_db_record_total{capacity_mode=\"serverless\", index_name=~\"$index_name\"})", "legendFormat": "Records", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Records per Index",
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 1 },
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] },
+          "color": { "mode": "thresholds" }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none", "textMode": "value_and_name", "colorMode": "value" },
+      "targets": [
+        { "datasource": "Prometheus", "expr": "sum by (index_name) (pinecone_db_record_total{capacity_mode=\"serverless\", index_name=~\"$index_name\"})", "legendFormat": "{{index_name}}", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Storage Size per Index",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 1 },
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] },
+          "color": { "mode": "thresholds" }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none", "textMode": "value_and_name", "colorMode": "value" },
+      "targets": [
+        { "datasource": "Prometheus", "expr": "sum by (index_name) (pinecone_db_storage_size_bytes{capacity_mode=\"serverless\", index_name=~\"$index_name\"})", "legendFormat": "{{index_name}}", "refId": "A" }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Operation Rates",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "collapsed": false
+    },
+    {
+      "type": "timeseries",
+      "title": "Query Rate by Index",
+      "description": "Query operations per second",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 6 },
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "pointSize": 5, "showPoints": "never", "spanNulls": true } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "datasource": "Prometheus", "expr": "sum by (index_name) (rate(pinecone_db_op_query_count{capacity_mode=\"serverless\", index_name=~\"$index_name\"}[5m]))", "legendFormat": "{{index_name}}", "refId": "A" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Upsert Rate by Index",
+      "description": "Upsert operations per second",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 6 },
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "pointSize": 5, "showPoints": "never", "spanNulls": true } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "datasource": "Prometheus", "expr": "sum by (index_name) (rate(pinecone_db_op_upsert_count{capacity_mode=\"serverless\", index_name=~\"$index_name\"}[5m]))", "legendFormat": "{{index_name}}", "refId": "A" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Fetch Rate by Index",
+      "description": "Fetch operations per second",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 6 },
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "pointSize": 5, "showPoints": "never", "spanNulls": true } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "datasource": "Prometheus", "expr": "sum by (index_name) (rate(pinecone_db_op_fetch_count{capacity_mode=\"serverless\", index_name=~\"$index_name\"}[5m]))", "legendFormat": "{{index_name}}", "refId": "A" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Update Rate by Index",
+      "description": "Update operations per second",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 14 },
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "pointSize": 5, "showPoints": "never", "spanNulls": true } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "datasource": "Prometheus", "expr": "sum by (index_name) (rate(pinecone_db_op_update_count{capacity_mode=\"serverless\", index_name=~\"$index_name\"}[5m]))", "legendFormat": "{{index_name}}", "refId": "A" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Delete Rate by Index",
+      "description": "Delete operations per second",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 14 },
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "pointSize": 5, "showPoints": "never", "spanNulls": true } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "datasource": "Prometheus", "expr": "sum by (index_name) (rate(pinecone_db_op_delete_count{capacity_mode=\"serverless\", index_name=~\"$index_name\"}[5m]))", "legendFormat": "{{index_name}}", "refId": "A" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Read/Write Units per Second",
+      "description": "Resource units consumed per second",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 14 },
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "pointSize": 5, "showPoints": "never", "spanNulls": true } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "datasource": "Prometheus", "expr": "sum by (index_name) (rate(pinecone_db_read_unit_count{capacity_mode=\"serverless\", index_name=~\"$index_name\"}[5m]))", "legendFormat": "{{index_name}} reads", "refId": "A" },
+        { "datasource": "Prometheus", "expr": "sum by (index_name) (rate(pinecone_db_write_unit_count{capacity_mode=\"serverless\", index_name=~\"$index_name\"}[5m]))", "legendFormat": "{{index_name}} writes", "refId": "B" }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Latency",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
+      "collapsed": false
+    },
+    {
+      "type": "timeseries",
+      "title": "Avg Query Latency by Index",
+      "description": "Average query processing time (ms)",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 23 },
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "pointSize": 5, "showPoints": "never", "spanNulls": true } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "datasource": "Prometheus", "expr": "(sum by (index_name) (rate(pinecone_db_op_query_duration_sum{capacity_mode=\"serverless\", index_name=~\"$index_name\"}[5m])))/(sum by (index_name) (rate(pinecone_db_op_query_count{capacity_mode=\"serverless\", index_name=~\"$index_name\"}[5m])))", "legendFormat": "{{index_name}}", "refId": "A" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Avg Upsert Latency by Index",
+      "description": "Average upsert processing time (ms)",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 23 },
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "pointSize": 5, "showPoints": "never", "spanNulls": true } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "datasource": "Prometheus", "expr": "(sum by (index_name) (rate(pinecone_db_op_upsert_duration_sum{capacity_mode=\"serverless\", index_name=~\"$index_name\"}[5m])))/(sum by (index_name) (rate(pinecone_db_op_upsert_count{capacity_mode=\"serverless\", index_name=~\"$index_name\"}[5m])))", "legendFormat": "{{index_name}}", "refId": "A" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Avg Fetch Latency by Index",
+      "description": "Average fetch processing time (ms)",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 23 },
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "pointSize": 5, "showPoints": "never", "spanNulls": true } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "datasource": "Prometheus", "expr": "(sum by (index_name) (rate(pinecone_db_op_fetch_duration_sum{capacity_mode=\"serverless\", index_name=~\"$index_name\"}[5m])))/(sum by (index_name) (rate(pinecone_db_op_fetch_count{capacity_mode=\"serverless\", index_name=~\"$index_name\"}[5m])))", "legendFormat": "{{index_name}}", "refId": "A" }
+      ]
+    }
+  ]
+}
